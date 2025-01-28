@@ -51,6 +51,7 @@
 | `top` | Monitor system processes in real-time. |
 | `kill <PID>` | Kill a process by PID. |
 | `pkill <name>` | Kill processes by name. |
+| `kill -9 <PID>` | Forcefully Kill processes by ID |
 | `jobs` | List active background jobs. |
 | `fg <job>` | Bring a background job to the foreground. |
 
@@ -87,3 +88,23 @@
 | `sudo apt install <package>` | Install a package. |
 | `sudo apt remove <package>` | Remove a package. |
 | `sudo apt search <keyword>` | Search for a package. |
+
+
+Parent and Child Processes
+	•	Parent Process: The process that spawns or creates another process.
+	•	Child Process: A process created by a parent process.
+
+Killing a Parent Process:
+  kill -9 <parent_PID>
+
+Killing a Child Process:
+  kill -9 <child_PID>
+
+What is a Zombie Process?
+A zombie process is a process that has completed execution but remains in the process table because its parent has not read its exit status using the wait() system call.
+
+ps aux | grep 'Z' - identify zombie processes
+
+ps -o ppid,pid,stat,cmd | grep 'Z' - find parent to zombie
+
+kill -9 <parent_PID> - kill parent of zombie

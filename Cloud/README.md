@@ -118,3 +118,92 @@
 2. **Automation:** CI/CD pipelines.
 3. **Lean Practices:** Minimize waste in processes.
 4. **Measurement:** Continuous feedback and monitoring.67
+
+# File Ownership and Permissions in Linux
+
+## Why is managing file ownership important?
+Managing file ownership is important because it helps control access to files and directories. Proper ownership ensures:
+- Only authorized users can modify or execute sensitive files.
+- Group collaboration is streamlined by assigning files to specific groups.
+- System security is maintained by restricting access to critical files.
+
+Incorrect ownership settings can lead to unauthorized access, data loss, or security vulnerabilities.
+
+---
+
+## What is the command to view file ownership?
+The `ls -l` command is used to view file ownership. For example:
+```bash
+ls -l
+
+## Example
+
+-rwxr–r– 1 adminuser developers 512 Jan 23 10:15 script.sh
+
+### Breakdown of Permissions:
+1. **File Type**:
+   The first character indicates the file type:
+   - `-`: Regular file.
+   - `d`: Directory.
+   - `l`: Symbolic link.
+
+2. **Permissions**:
+   The next 9 characters (`rwxr--r--`) represent permissions:
+   - `rwx`: **User (owner)** has read, write, and execute permissions.
+   - `r--`: **Group** (developers) has read-only permission.
+   - `r--`: **Other** (everyone else) has read-only permission.
+
+3. **Links**:
+   `1` indicates the number of hard links to the file.
+
+4. **Owner**:
+   The owner of the file is `adminuser`.
+
+5. **Group**:
+   The file belongs to the group `developers`.
+
+6. **File Size**:
+   The file size is `512` bytes.
+
+7. **Last Modified Date**:
+   The file was last modified on `Jan 23` at `10:15`.
+
+8. **File Name**:
+   The file is named `script.sh`.
+
+### Key Notes:
+- The owner `adminuser` can read, write, and execute the file.
+- Members of the `developers` group can only read the file.
+- All other users can only read the file.
+
+---
+
+## Additional Notes
+- **Changing Permissions**:
+  Use `chmod` to modify permissions. Example:
+  `chmod u+x file.sh` (adds execute permission for the owner).
+
+- **Changing Ownership**:
+  Use `chown` to change ownership. Example:
+  `sudo chown user:group file.sh`.
+
+- **Numeric Representation of Permissions**:
+  Each permission set can be represented by a number:
+  - `r` = 4, `w` = 2, `x` = 1.
+  Example: `chmod 754 file.sh` means:
+  - User: `7` (read + write + execute).
+  - Group: `5` (read + execute).
+  - Other: `4` (read only).
+
+
+What permissions are set when a user creates a file or directory? Who does the file or directory belong to?
+
+When a user creates a file or directory:
+	•	The file or directory belongs to the user (as the owner) and their primary group.
+	•	The default permissions are determined by the user’s umask (user file-creation mask), which subtracts permissions from the maximum possible values (777 for directories, 666 for files).
+
+For example:
+	•	If the umask is 022, a newly created file will have 644 permissions (rw-r--r--).
+	•	If the umask is 022, a newly created directory will have 755 permissions (rwxr-xr-x).
+
+
