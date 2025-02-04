@@ -19,7 +19,6 @@ git --version
 SSH into your VM:
 ssh -i ~/.ssh/<your_key.pem> adminuser@<your_VM_IP>
 
-
 Clone the repository:
 git clone <repository_url>
 
