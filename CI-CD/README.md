@@ -84,3 +84,15 @@ Jenkins is an **open-source automation tool** used for **CI/CD pipeline manageme
 - **Reduces Costs**: Less manual work, fewer production failures.
 
 ---
+
+## Jenkins Code along:
+- Login to Jenkins
+- Create a new job
+- Enter code to be executed in Execute shell
+- Run the build
+- Check for a green tick for successful build
+- Look out Console Output
+
+## Linking Jobs
+- Can specifiy a post build action, choose another pipeline to run after the first succeeds
+- this job will then perform both tasks if run successfully
