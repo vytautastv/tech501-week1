@@ -75,8 +75,8 @@ The recommended way to supply AWS credentials to Terraform is by **using the AWS
 ## **How Does Terraform Look Up AWS Credentials? (Order of Precedence)**
 Terraform searches for AWS credentials in the following order (highest priority first):
 
-1️**Environment Variables**
-   ```sh
+**Environment Variables**
+
    export AWS_ACCESS_KEY_ID="your-access-key"
    export AWS_SECRET_ACCESS_KEY="your-secret-key"
 
@@ -103,10 +103,217 @@ A **Security Group** named `tech501-vy-tf-allow-port22-3000-80` has been created
 - **Port 80 (HTTP)**: Open to **all IPs** (`0.0.0.0/0`) to allow access to the web server.
 
 ### EC2 Security Group Ingress Example
-```hcl
+
 ingress {
   from_port   = 22
   to_port     = 22
   protocol    = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
 }
+
+# Terraform Commands and Their Uses
+
+## 1. `terraform init` - Initialize Terraform
+**Purpose:**
+- Initialises a Terraform project.
+- Downloads required provider plugins (e.g., AWS, Azure).
+- Configures backend settings (for state storage).
+
+**When to Use:**
+- When setting up a new Terraform project.
+- After modifying the `provider` block.
+- After changing Terraform backends.
+
+**Example:**
+```sh
+terraform init
+```
+
+---
+
+## 2. `terraform plan` - Preview Changes
+**Purpose:**
+- Displays what Terraform **will do** before applying changes.
+- Helps review additions, modifications, and deletions in resources.
+
+**When to Use:**
+- Before running `terraform apply` to confirm changes.
+- After modifying `.tf` files to check for potential issues.
+
+**Example:**
+```sh
+terraform plan
+```
+
+**Plan Output Indicators:**
+- `+` Resource will be created.
+- `-` Resource will be destroyed.
+- `~` Resource will be modified.
+
+---
+
+## 3. `terraform apply` - Deploy Changes
+**Purpose:**
+- Applies the planned changes to the infrastructure.
+- Creates, updates, or deletes resources as needed.
+
+**When to Use:**
+- After reviewing and confirming changes from `terraform plan`.
+
+**Example:**
+```sh
+terraform apply
+```
+
+**To apply without manual confirmation:**
+```sh
+terraform apply -auto-approve
+```
+
+---
+
+## Summary Table
+
+| Command            | Purpose | When to Use |
+|--------------------|---------|-------------|
+| `terraform init`  | Initialises Terraform, installs providers, and sets up the backend. | First-time setup or after modifying providers. |
+| `terraform plan`  | Shows planned changes without applying them. | Before `apply`, to review changes. |
+| `terraform apply` | Applies the planned changes to infrastructure. | When ready to deploy changes. |
+
+Would you like additional commands such as `terraform destroy`, `fmt`, or `validate` included?
+
+
+# Deploying an App and Database Using Terraform
+
+## Introduction
+Terraform is an Infrastructure as Code (IaC) tool that allows you to automate and manage cloud infrastructure efficiently. This guide demonstrates how to use Terraform to deploy an application and a database in public and private subnets, along with the necessary networking components such as Network Security Groups (NSGs) and public IPs.
+
+## Benefits of Using Terraform
+- **Automation**: Avoids manual infrastructure setup, reducing errors.
+- **Version Control**: Infrastructure code can be stored in a repository, enabling collaboration and rollback.
+- **Scalability**: Easily scale infrastructure components as needed.
+- **Consistency**: Ensures consistent deployment across environments.
+
+## Architecture Overview
+We will create:
+- A **VPC** (or Virtual Network) to host resources.
+- Two **subnets**:
+  - **Public subnet**: Hosts the application server with a public IP.
+  - **Private subnet**: Hosts the database with restricted access.
+- **Network Security Groups (NSGs)**:
+  - Controls access to the application and database.
+- A **Public IP** for the application server to make it accessible.
+- A **Route Table** to manage traffic flow between subnets.
+
+## Terraform Implementation
+### 1. Define Provider
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+```
+
+### 2. Create VPC and Subnets
+```hcl
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "public_subnet" {
+  vpc_id            = aws_vpc.my_vpc.id
+  cidr_block        = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id     = aws_vpc.my_vpc.id
+  cidr_block = "10.0.2.0/24"
+}
+```
+
+### 3. Create Internet Gateway and Route Table
+```hcl
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.my_vpc.id
+}
+
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.gw.id
+  }
+}
+
+resource "aws_route_table_association" "public_assoc" {
+  subnet_id      = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+```
+
+### 4. Create Security Groups
+```hcl
+resource "aws_security_group" "app_sg" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "db_sg" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    security_groups = [aws_security_group.app_sg.id]
+  }
+}
+```
+
+### 5. Deploy Application Server
+```hcl
+resource "aws_instance" "app" {
+  ami           = "ami-12345678"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.public_subnet.id
+  security_groups = [aws_security_group.app_sg.name]
+  associate_public_ip_address = true
+}
+```
+
+### 6. Deploy Database Server
+```hcl
+resource "aws_db_instance" "db" {
+  engine         = "mysql"
+  instance_class = "db.t2.micro"
+  allocated_storage = 20
+  subnet_id      = aws_subnet.private_subnet.id
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
+  skip_final_snapshot = true
+}
+```
+
+## Why These Networking Components Are Needed
+- **VPC**: Isolates our cloud resources for security and control.
+- **Public Subnet**: Allows the app to be accessed via the internet.
+- **Private Subnet**: Restricts the database to internal access only.
+- **NSGs**: Ensures only necessary traffic flows to the app and database.
+- **Public IP**: Needed to expose the application to users.
+- **Route Table**: Controls traffic between subnets and the internet.
+
+## Conclusion
+By using Terraform, we can define our infrastructure as code and deploy it consistently. The networking components ensure security, availability, and accessibility of the application and database. Happy coding!
