@@ -1,4 +1,4 @@
-# Docker Learning Guide
+# Docker Notes - Project 8
 
 ## 1. Install Docker Desktop
 ### **Steps to Install Docker Desktop:**
