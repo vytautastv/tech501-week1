@@ -193,8 +193,193 @@ sudo systemctl restart nginx  # Restart Nginx to apply the changes
 
 ---
 
-## Conclusion
+# Kubernetes Deployment Notes
 
-These steps should help you deploy applications to a Kubernetes environment using Minikube, expose services via Nginx, and troubleshoot common deployment issues. With Kubernetes, you can easily manage the deployment, scaling, and maintenance of your applications while benefiting from containerization. Use the above commands to quickly recover and ensure your applications are running after an EC2 instance restart.
+## Day 1
+
+### 1. Research Kubernetes
+Kubernetes (K8s) is an open-source container orchestration platform designed to automate deployment, scaling, and operations of application containers.
+
+- Manages containerised applications across multiple hosts
+- Provides self-healing, load balancing, and service discovery
+- Works with Docker and other container runtimes
+
+Useful resources:
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Kubernetes Basics](https://kubernetes.io/docs/tutorials/kubernetes-basics/)
 
 ---
+
+### 2. Get Kubernetes Running Using Docker Desktop
+
+#### Steps:
+1. Install **Docker Desktop** from [Docker website](https://www.docker.com/products/docker-desktop/).
+2. Enable **Kubernetes** in Docker Desktop:
+   - Open Docker Desktop settings
+   - Navigate to **Kubernetes** tab
+   - Check **Enable Kubernetes**
+   - Apply changes and wait for Kubernetes to start
+
+3. Verify Kubernetes is running:
+   ```sh
+   kubectl get nodes
+   kubectl cluster-info
+   ```
+
+---
+
+### 3. Nginx Deployment with NodePort Service
+
+#### a. Create Nginx Deployment
+```sh
+kubectl create deployment nginx --image=nginx
+```
+
+#### b. Expose Nginx using a NodePort Service
+```sh
+kubectl expose deployment nginx --port=80 --type=NodePort
+```
+
+#### c. See What Happens When We Delete a Pod
+```sh
+kubectl get pods  # List pods
+kubectl delete pod <nginx-pod-name>  # Delete a pod
+kubectl get pods  # Verify a new pod is created automatically
+```
+
+#### d. Increase Replicas with No Downtime
+```sh
+kubectl scale deployment nginx --replicas=3
+kubectl get pods  # Check new replicas
+```
+
+#### e. Delete Kubernetes Deployments and Services
+```sh
+kubectl delete deployment nginx
+kubectl delete service nginx
+```
+
+---
+
+### 4. Deploy NodeJS Sparta Test App
+
+#### Clone the Repository & Deploy
+```sh
+git clone https://github.com/your-org/sparta-app.git
+cd sparta-app
+kubectl apply -f k8s/sparta-deployment.yaml
+kubectl apply -f k8s/sparta-service.yaml
+```
+
+## Day 2
+
+### 1. Persisting Data for Database Deployment
+
+#### a. Create 2-Tier Deployment with Persistent Volume (PV)
+1. Define **Persistent Volume (PV) and Persistent Volume Claim (PVC)** in YAML
+2. Deploy a database pod that uses the PVC
+
+Example PV & PVC YAML:
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: db-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+Apply configuration:
+```sh
+kubectl apply -f pv.yaml
+kubectl apply -f pvc.yaml
+```
+
+#### b. Research Types of Autoscaling in Kubernetes
+- **Horizontal Pod Autoscaler (HPA)** – Scales pods based on CPU/memory utilisation.
+- **Vertical Pod Autoscaler (VPA)** – Adjusts CPU/memory requests of pods dynamically.
+- **Cluster Autoscaler** – Adds/removes nodes based on resource demand.
+
+---
+
+### 2. Autoscaling
+
+#### a. Use HPA to Scale the App
+Enable autoscaling for the Sparta test app:
+```sh
+kubectl autoscale deployment sparta-app --cpu-percent=50 --min=2 --max=10
+```
+
+Check HPA status:
+```sh
+kubectl get hpa
+```
+
+---
+
+### 3. Persisting Data for Database Deployment (Continued)
+
+#### a. Remove PVC and Retain Data in PV
+```sh
+kubectl delete pvc db-pvc  # Deletes PVC but retains PV data
+```
+
+## Day 3
+
+### 1. Deploy the Sparta Test App on the Cloud
+
+#### a. Setup Minikube on a Cloud Instance
+```sh
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+minikube start --driver=none
+```
+
+#### b. Deploy Three Apps on One Cloud Instance
+```sh
+kubectl apply -f app1.yaml
+kubectl apply -f app2.yaml
+kubectl apply -f app3.yaml
+```
+
+#### c. Deploy Sparta Test App in the Cloud
+```sh
+kubectl apply -f sparta-cloud.yaml
+```
+
+## Restart EC2 & Quickly Restore Kubernetes Apps
+
+### Step 1: Start Minikube on EC2
+```sh
+minikube start --driver=none
+```
+
+### Step 2: Reapply Deployments & Services
+```sh
+kubectl apply -f k8s/
+```
+
+### Step 3: Verify Everything is Running
+```sh
+kubectl get pods
+kubectl get svc
+```
